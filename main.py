@@ -19,6 +19,22 @@ def split_into_blocks(image, block_size=8):
             blocks.append(padded_image[i:i+block_size, j:j+block_size])
     return blocks, (h, w)
 
+def haar_matrix():
+    H = np.array([
+        [np.sqrt(8/64), np.sqrt(8/64), 1/2, 0, np.sqrt(2/4), 0, 0, 0],
+        [np.sqrt(8/64), np.sqrt(8/64), 1/2, 0, -np.sqrt(2/4), 0, 0, 0],
+        [np.sqrt(8/64), np.sqrt(8/64), -1/2, 0, 0, np.sqrt(2/4), 0, 0],
+        [np.sqrt(8/64), np.sqrt(8/64), -1/2, 0, 0, -np.sqrt(2/4), 0, 0],
+        [np.sqrt(8/64), -np.sqrt(8/64), 0, 1/2, 0, 0, np.sqrt(2/4), 0],
+        [np.sqrt(8/64), -np.sqrt(8/64), 0, 1/2, 0, 0, -np.sqrt(2/4), 0],
+        [np.sqrt(8/64), -np.sqrt(8/64), 0, -1/2, 0, 0, 0, np.sqrt(2/4)],
+        [np.sqrt(8/64), -np.sqrt(8/64), 0, -1/2, 0, 0, 0, -np.sqrt(2/4)],
+    ])
+    return H
+
+def haar_transform(block):
+    H = haar_matrix()
+    return H.T @ block @ H
 
 image_path = "slike BMP/Lena.bmp"
 image = load_image(image_path)
@@ -29,6 +45,12 @@ print(f"Število blokov: {len(blocks)}")
 print(f"Velikost prvega bloka: {blocks[0].shape}")
 
 block = blocks[0]
+
+print(block)
+# Izvedemo Haarovo transformacijo
+transformed_block = haar_transform(block)
+print("Haarova transformacija za prvi blok:")
+print(transformed_block)
 
 
 
