@@ -36,6 +36,18 @@ def haar_transform(block):
     H = haar_matrix()
     return H.T @ block @ H
 
+def zigzag(input_matrix):
+    rows, cols = input_matrix.shape
+    result = []
+    for sum_idx in range(rows + cols - 1):
+        if sum_idx % 2 == 1:  # Gremo od zgoraj levo proti spodaj desno
+            for i in range(max(0, sum_idx - cols + 1), min(sum_idx + 1, rows)):
+                result.append(input_matrix[i, sum_idx - i])
+        else:  # Gremo od spodaj desno proti zgoraj levo
+            for i in range(min(sum_idx, rows - 1), max(-1, sum_idx - cols, -1), -1):
+                result.append(input_matrix[i, sum_idx - i])
+    return np.array(result)
+
 image_path = "slike BMP/Lena.bmp"
 image = load_image(image_path)
 print(f"Dimenzije slike: {image.shape}")
@@ -52,5 +64,7 @@ transformed_block = haar_transform(block)
 print("Haarova transformacija za prvi blok:")
 print(transformed_block)
 
-
+zigzagged = zigzag(transformed_block)
+print("Cik-cak pretvorba (1D polje):")
+print(zigzagged)
 
