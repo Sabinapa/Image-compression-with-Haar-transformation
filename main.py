@@ -1,16 +1,34 @@
-# This is a sample Python script.
+from PIL import Image
+import numpy as np
+import zlib
 
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+def load_image(file_path):
+    image = Image.open(file_path).convert('L')
+    return np.array(image)
+
+def split_into_blocks(image, block_size=8):
+    h, w = image.shape
+    h_padded = (h + block_size - 1) // block_size * block_size
+    w_padded = (w + block_size - 1) // block_size * block_size
+    padded_image = np.zeros((h_padded, w_padded), dtype=image.dtype)
+    padded_image[:h, :w] = image
+
+    blocks = []
+    for i in range(0, h_padded, block_size):
+        for j in range(0, w_padded, block_size):
+            blocks.append(padded_image[i:i+block_size, j:j+block_size])
+    return blocks, (h, w)
 
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
+image_path = "slike BMP/Lena.bmp"
+image = load_image(image_path)
+print(f"Dimenzije slike: {image.shape}")
+
+blocks, original_shape = split_into_blocks(image)
+print(f"Število blokov: {len(blocks)}")
+print(f"Velikost prvega bloka: {blocks[0].shape}")
+
+block = blocks[0]
 
 
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
