@@ -48,6 +48,9 @@ def zigzag(input_matrix):
                 result.append(input_matrix[i, sum_idx - i])
     return np.array(result)
 
+def apply_threshold(data, threshold):
+    return np.where(data < threshold, 0, data)
+
 image_path = "slike BMP/Lena.bmp"
 image = load_image(image_path)
 print(f"Dimenzije slike: {image.shape}")
@@ -67,4 +70,9 @@ print(transformed_block)
 zigzagged = zigzag(transformed_block)
 print("Cik-cak pretvorba (1D polje):")
 print(zigzagged)
+
+threshold = 2
+thresholded = apply_threshold(zigzagged, threshold)
+print("Po uporabi praga stiskanja:")
+print(thresholded)
 
