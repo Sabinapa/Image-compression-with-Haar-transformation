@@ -51,6 +51,14 @@ def zigzag(input_matrix):
 def apply_threshold(data, threshold):
     return np.where(data < threshold, 0, data)
 
+
+def entropy_encode_with_library(data):
+    # Pretvorimo 1D polje v niz, primeren za kodiranje
+    data_bytes = ','.join(map(str, data)).encode('utf-8')
+    # Uporabimo zlib za stiskanje
+    encoded_data = zlib.compress(data_bytes)
+    return encoded_data
+
 image_path = "slike BMP/Lena.bmp"
 image = load_image(image_path)
 print(f"Dimenzije slike: {image.shape}")
@@ -75,4 +83,14 @@ threshold = 2
 thresholded = apply_threshold(zigzagged, threshold)
 print("Po uporabi praga stiskanja:")
 print(thresholded)
+
+encoded_data = entropy_encode_with_library(thresholded)
+print("Kodirani podatki (bin):", encoded_data)
+print(f"Velikost po kodiranju: {len(encoded_data)} bajtov")
+
+output_file = "compressed_data.bin"
+with open(output_file, "wb") as file:
+    file.write(encoded_data)
+
+print(f"Kodirani podatki so shranjeni v datoteko '{output_file}'")
 
