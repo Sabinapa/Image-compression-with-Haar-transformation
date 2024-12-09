@@ -12,7 +12,6 @@ def split_into_blocks(image, block_size=8):
     w_padded = (w + block_size - 1) // block_size * block_size
     padded_image = np.zeros((h_padded, w_padded), dtype=image.dtype)
     padded_image[:h, :w] = image
-
     blocks = []
     for i in range(0, h_padded, block_size):
         for j in range(0, w_padded, block_size):
@@ -40,10 +39,10 @@ def zigzag(input_matrix):
     rows, cols = input_matrix.shape
     result = []
     for sum_idx in range(rows + cols - 1):
-        if sum_idx % 2 == 1:  # Gremo od zgoraj levo proti spodaj desno
+        if sum_idx % 2 == 1:
             for i in range(max(0, sum_idx - cols + 1), min(sum_idx + 1, rows)):
                 result.append(input_matrix[i, sum_idx - i])
-        else:  # Gremo od spodaj desno proti zgoraj levo
+        else:
             for i in range(min(sum_idx, rows - 1), max(-1, sum_idx - cols, -1), -1):
                 result.append(input_matrix[i, sum_idx - i])
     return np.array(result)
@@ -51,13 +50,11 @@ def zigzag(input_matrix):
 def apply_threshold(data, threshold):
     return np.where(data < threshold, 0, data)
 
-
 def entropy_encode_with_library(data):
-    # Pretvorimo 1D polje v niz, primeren za kodiranje
     data_bytes = ','.join(map(str, data)).encode('utf-8')
-    # Uporabimo zlib za stiskanje
     encoded_data = zlib.compress(data_bytes)
     return encoded_data
+
 
 image_path = "slike BMP/Lena.bmp"
 image = load_image(image_path)
@@ -66,11 +63,9 @@ print(f"Dimenzije slike: {image.shape}")
 blocks, original_shape = split_into_blocks(image)
 print(f"Število blokov: {len(blocks)}")
 print(f"Velikost prvega bloka: {blocks[0].shape}")
-
 block = blocks[0]
-
 print(block)
-# Izvedemo Haarovo transformacijo
+
 transformed_block = haar_transform(block)
 print("Haarova transformacija za prvi blok:")
 print(transformed_block)
@@ -93,4 +88,5 @@ with open(output_file, "wb") as file:
     file.write(encoded_data)
 
 print(f"Kodirani podatki so shranjeni v datoteko '{output_file}'")
+
 
