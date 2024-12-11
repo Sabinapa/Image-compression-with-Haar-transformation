@@ -1,3 +1,5 @@
+import os
+import sys
 from PIL import Image
 import numpy as np
 import zlib
@@ -61,11 +63,11 @@ def inverse_zigzag(input_array, rows, cols):
     result = np.zeros((rows, cols))
     idx = 0
     for sum_idx in range(rows + cols - 1):
-        if sum_idx % 2 == 1:  # Gremo od zgoraj levo proti spodaj desno
+        if sum_idx % 2 == 1:
             for i in range(max(0, sum_idx - cols + 1), min(sum_idx + 1, rows)):
                 result[i, sum_idx - i] = input_array[idx]
                 idx += 1
-        else:  # Gremo od spodaj desno proti zgoraj levo
+        else:
             for i in range(min(sum_idx, rows - 1), max(-1, sum_idx - cols, -1), -1):
                 result[i, sum_idx - i] = input_array[idx]
                 idx += 1
@@ -86,27 +88,21 @@ def assemble_image_from_blocks(blocks, image_shape, block_size=8):
             block_idx += 1
     return image
 
-
-# Dekompresija
-def decompress(encoded_file, block_size=8):
-    with open(encoded_file, "rb") as file:
-        # Preberemo dimenzije slike
+def decompress(input_file, output_file, block_size=8):
+    with open(input_file, "rb") as file:
         dimensions = file.readline().decode('utf-8').strip()
-        print(f"Prebrane dimenzije: {dimensions}")
+        #print(f"Prebrane dimenzije: {dimensions}")
         original_shape = tuple(map(int, dimensions.split(',')))
-
-        # Preberemo ostale podatke in razdelimo po blokih
         compressed_data = file.read()
 
     #print(f"Velikost prebranih podatkov: {len(compressed_data)} bajtov")
     #print(blocks_data)
 
     blocks = []
-    offset = 0  # Za sledenje, kje smo v `compressed_data`
+    offset = 0
     expected_blocks = (original_shape[0] // block_size) * (original_shape[1] // block_size)
-    print("Koliko blokov bi naj bilo", expected_blocks)
+    #print("Koliko blokov bi naj bilo", expected_blocks)
 
-    # Dekompresija blokov
     for idx in range(expected_blocks):
         # Dekodiramo dolžino bloka z `zlib.decompress`
         decoded_data = zlib.decompress(compressed_data[offset:])
@@ -122,7 +118,7 @@ def decompress(encoded_file, block_size=8):
 
         offset += len(zlib.compress(decoded_str.encode('utf-8')))
 
-        # Prikaz podatkov za prvih nekaj blokov
+        '''
         if idx < 5:
             print(f"Blok {idx + 1}:")
             print("1D polje po dekompresiji:")
@@ -132,64 +128,93 @@ def decompress(encoded_file, block_size=8):
             print("2D polje po inverzni Haarovi transformaciji:")
             print(restored_block)
             print("-----------")
+        '''
 
-    # Združimo bloke nazaj v sliko
     restored_image = assemble_image_from_blocks(blocks, original_shape, block_size)
-    return restored_image
+    Image.fromarray(restored_image).save(output_file)
+    print(f"Restavrirana slika je shranjena v '{output_file}'")
+
+def compress(image_path, output_file, threshold):
+    image = load_image(image_path)
+
+    blocks, original_shape = split_into_blocks(image)
+    #print(f"Velikost prvega bloka: {blocks[0].shape}")
+
+    with open(output_file, "wb") as file:
+        file.write(f"{image.shape[0]},{image.shape[1]}\n".encode('utf-8'))
+
+        for idx, block in enumerate(blocks):
+            # Haarova transformacija
+            transformed_block = haar_transform(block)
+
+            # Cik-cak pretvorba
+            zigzagged = zigzag(transformed_block)
+
+            #print("Tip podatkov v `zigzagged`:", type(zigzagged), "Prva vrednost:", zigzagged[0])
+            #print("Tip podatkov v `threshold`:", type(threshold), "Vrednost:", threshold)
+
+            # Prag stiskanja
+            thresholded = apply_threshold(zigzagged, threshold)
+
+            # Entropijsko kodiranje
+            encoded_data = entropy_encode_with_library(thresholded)
+
+            # Zapiši podatke v datoteko
+            file.write(encoded_data)
+
+            '''
+            if idx < 5:  # Prikaz podatkov za prvih 5 blokov
+                print(f"Blok {idx + 1}:")
+                print("Originalni blok (8x8):")
+                print(block)
+                print("Transformirani blok (Haarova transformacija):")
+                print(transformed_block)
+                print("Cik-cak pretvorba (1D polje):")
+                print(zigzagged)
+                print("Po pragu stiskanja:")
+                print(thresholded)
+                print(f"Velikost kodiranih podatkov: {len(encoded_data)} bajtov")
+                print("-----------")
+            '''
+
+    print(f"Vsi kodirani podatki so shranjeni v datoteko '{output_file}'")
 
 
-output_file = "compressed_data.bin"
+##############################################################
 
-image_path = "slike BMP/Lena.bmp"
-image = load_image(image_path)
+def main():
+    if len(sys.argv) < 4:
+        print("Napaka: Premalo argumentov.")
+        print("Uporaba: dn2 <vhodna_datoteka> <c|d> <izhodna_datoteka> [<prag>]")
+        sys.exit(1)
 
-blocks, original_shape = split_into_blocks(image)
-print(f"Velikost prvega bloka: {blocks[0].shape}")
+    input_file = sys.argv[2]
+    option = sys.argv[3]
+    output_file = sys.argv[4]
+    if option == "c":
+        threshold = float(sys.argv[5]) if len(sys.argv) > 4 else 0.0
 
-# Odpri datoteko za zapis
-with open(output_file, "wb") as file:
-    file.write(f"{image.shape[0]},{image.shape[1]}\n".encode('utf-8'))
 
-    for idx, block in enumerate(blocks):
-        # Haarova transformacija
-        transformed_block = haar_transform(block)
+    print(input_file, option, output_file)
 
-        # Cik-cak pretvorba
-        zigzagged = zigzag(transformed_block)
+    if not os.path.exists(input_file):
+        print(f"Napaka: Vhodna datoteka '{input_file}' ne obstaja.")
+        sys.exit(1)
 
-        # Prag stiskanja
-        threshold =  100 #Prag po želji
-        thresholded = apply_threshold(zigzagged, threshold)
+    if option == "c":
+        if not input_file.lower().endswith(".bmp"):
+            print("Napaka: Za kompresijo je podprta le vhodna datoteka BMP.")
+            sys.exit(1)
+        compress(input_file, output_file, threshold)
+    elif option == "d":
+        decompress(input_file, output_file)
+    else:
+        print("Napaka: Neznana opcija. Uporabite 'c' za kompresijo ali 'd' za dekompresijo.")
+        sys.exit(1)
 
-        # Entropijsko kodiranje
-        encoded_data = entropy_encode_with_library(thresholded)
 
-        # Zapiši podatke v datoteko
-        file.write(encoded_data)
-
-        # Prikaz podatkov za prvi blok (ali nekaj blokov)
-        if idx < 5:  # Prikaz podatkov za prvih 5 blokov
-            print(f"Blok {idx + 1}:")
-            print("Originalni blok (8x8):")
-            print(block)
-            print("Transformirani blok (Haarova transformacija):")
-            print(transformed_block)
-            print("Cik-cak pretvorba (1D polje):")
-            print(zigzagged)
-            print("Po pragu stiskanja:")
-            print(thresholded)
-            print(f"Velikost kodiranih podatkov: {len(encoded_data)} bajtov")
-            print("-----------")
-
-print(f"Vsi kodirani podatki so shranjeni v datoteko '{output_file}'")
-
-encoded_file = "compressed_data.bin"
-
-restored_image = decompress(encoded_file)
-# Shranimo sliko v originalnem formatu
-restored_image_path = "restored_image4.bmp"
-Image.fromarray(restored_image).save(restored_image_path)
-print(f"Restavrirana slika je shranjena v '{restored_image_path}'")
+if __name__ == "__main__":
+    main()
 
 
 
